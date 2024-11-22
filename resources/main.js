@@ -1,15 +1,13 @@
 require.config({ paths: { 'vs': './monaco-editor/vs' } });
 
-require(['vs/editor/editor.main'], function () {
-  const editor = monaco.editor.create(document.getElementById('editor-container'), {
-    value: `# 初始化成功\n def demofunction():\n    print("Hello, World!")\n\n# 调用函数\nif __name__ == "__main__":\n    demofunction()`,
-    language: 'python',
-    theme: 'vs-light',
-    font: 'MSYHack',
-  });
+let editor;
 
-  // 示例：监听内容变化
-  editor.onDidChangeModelContent(() => {
-    console.log('编辑器内容变更：', editor.getValue());
+require(['vs/editor/editor.main'], function () {
+  editor = monaco.editor.create(document.getElementById('editor-container'), {
+    value: "# Welcome to Monaco Editor\nprint('Hello, Python!')",
+    language: 'python', // 默认语言
+    theme: 'vs',   // 默认深色主题
+    fontSize: 14,       // 默认字体大小
+    fontFamily: 'Consolas'
   });
 });
