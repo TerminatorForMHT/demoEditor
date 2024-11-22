@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl, QDir, pyqtSlot, pyqtSignal, QObject
 
+
 class EditorBridge(QObject):
     cursorPositionChanged = pyqtSignal(int, int)  # 光标行列信号
 
@@ -40,6 +41,7 @@ class EditorBridge(QObject):
     def set_font_family(self, font_family: str):
         script = f"setEditorFontFamily('{font_family}');"
         self.web_view.page().runJavaScript(script)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -98,14 +100,17 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(cursor_btn)
 
         # 光标位置显示
-        self.cursor_label = QLabel("光标位置: 行 0, 列 0")
-        self.bridge.cursorPositionChanged.connect(self.update_cursor_label)
+
+        self.bridge.cursorPositionChanged.connect(self.print_cursor_label)
 
         # 布局设置
         layout.addLayout(toolbar)
         layout.addWidget(self.web_view)
-        layout.addWidget(self.cursor_label)
         self.setCentralWidget(container)
+
+    def resizeEvent(self, event):
+        self.web_view.resize(self.size())
+        super().resizeEvent(event)
 
     @pyqtSlot()
     def open_file(self):
@@ -120,8 +125,8 @@ class MainWindow(QMainWindow):
         self.bridge.get_cursor_position()
 
     @pyqtSlot(int, int)
-    def update_cursor_label(self, line, column):
-        self.cursor_label.setText(f"光标位置: 行 {line}, 列 {column}")
+    def print_cursor_label(self, line, column):
+        print(f"光标位置: 行 {line}, 列 {column}")
 
     @pyqtSlot()
     def toggle_theme(self):
@@ -129,8 +134,10 @@ class MainWindow(QMainWindow):
         theme = "vs-dark" if self.is_dark_theme else "vs"
         self.bridge.set_theme(theme)
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
+    # window.showMaximized()
     window.show()
     sys.exit(app.exec())
