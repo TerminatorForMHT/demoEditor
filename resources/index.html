@@ -25,19 +25,35 @@
 <script src="./main.js"></script>
 <script>
     function setEditorContent(content) {
-        editor.setValue(content);
+        if (editor) {
+            editor.setValue(content);
+        } else {
+            console.error("Editor is not defined.");
+        }
     }
 
     function setEditorFontSize(size) {
-        editor.updateOptions({fontSize: size});
+        if (editor) {
+            editor.updateOptions({fontSize: size});
+        } else {
+            console.error("Editor is not defined.");
+        }
     }
 
     function setEditorFontFamily(fontFamily) {
-        editor.updateOptions({fontFamily: fontFamily});
+        if (editor) {
+            editor.updateOptions({fontFamily: fontFamily});
+        } else {
+            console.error("Editor is not defined.");
+        }
     }
 
     function setEditorTheme(theme) {
-        monaco.editor.setTheme(theme);
+        if (monaco) {
+            monaco.editor.setTheme(theme);
+        } else {
+            console.error("Monaco is not defined.");
+        }
     }
 </script>
 </body>

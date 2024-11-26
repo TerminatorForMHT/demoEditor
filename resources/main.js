@@ -1,4 +1,11 @@
-require.config({paths: {'vs': './monaco-editor/vs'}});
+require.config({
+    paths: {
+        'vs': './monaco-editor/vs' // 使用绝对路径
+    },
+    error: function(err) {
+        console.error('RequireJS config error:', err); // 添加错误处理
+    }
+});
 
 let editor;
 
