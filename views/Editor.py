@@ -1,5 +1,6 @@
 import autopep8
 from PyQt6.QtCore import pyqtSignal, QEventLoop, Qt
+from PyQt6.QtWebChannel import QWebChannel
 from monaco import MonacoWidget
 
 from config.MAPS import MONACO_LANGUAGES
@@ -11,7 +12,6 @@ class Editor(MonacoWidget):
     """
     自定义编辑器类，继承自 MonacoWidget
     """
-    ctrl_left_click_signal = pyqtSignal(dict)
     code_execut_signal = pyqtSignal(tuple)
 
     def __init__(self, parent=None):
@@ -31,7 +31,6 @@ class Editor(MonacoWidget):
         try:
             with open(file_path, 'r', encoding=ENCODE) as file:
                 self.setText(file.read())
-                self._enable_ctrl_click()
         except Exception as error:
             self.setText(f"无法加载文件: {error}")
 
@@ -138,21 +137,21 @@ class Editor(MonacoWidget):
         """
         self._execute_script(script)
 
-    def _enable_ctrl_click(self) -> None:
-        """
-        启用 Ctrl+单击以捕获光标位置。
-        """
-        script = """
-        (function() {
-            editor.onMouseDown(function(e) {
-                if (e.event.ctrlKey && e.target.position) {
-                    const position = e.target.position;
-                    window.pyqtSignalHandler.handleCtrlClick(position.lineNumber, position.column);
-                }
-            });
-        })();
-        """
-        self._execute_script(script)
+    # def _enable_ctrl_click(self) -> None:
+    #     """
+    #     启用 Ctrl+单击以捕获光标位置。
+    #     """
+    #     script = """
+    #     (function() {
+    #         editor.onMouseDown(function(e) {
+    #             if (e.event.ctrlKey && e.target.position) {
+    #                 const position = e.target.position;
+    #                 window.pyqtSignalHandler.handleCtrlClick(position.lineNumber, position.column);
+    #             }
+    #         });
+    #     })();
+    #     """
+    #     self._execute_script(script)
 
     def _execute_script(self, script: str) -> None:
         """
@@ -161,19 +160,16 @@ class Editor(MonacoWidget):
         """
         self.page().runJavaScript(script)
 
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if Qt.KeyboardModifier.ControlModifier:
-            if event.modifiers():
-                position = self.get_cursor_position()
-                line = position["lineNumber"]
-                index = position["column"]
-                jedi_lib = JdeiLib(source=self.text(), filename=self.file_path)
-                jump_info = {
-                    "assign_addr": jedi_lib.getAssignment(line, index),
-                    "reference_addr": jedi_lib.getReferences(line, index),
-                }
-                self.ctrl_left_click_signal.emit(jump_info)
+    def get_jump_info(self):
+        position = self.get_cursor_position()
+        line = position["lineNumber"]
+        index = position["column"]
+        jedi_lib = JdeiLib(source=self.text(), filename=self.file_path)
+        jump_info = {
+            "assign_addr": jedi_lib.getAssignment(line, index),
+            "reference_addr": jedi_lib.getReferences(line, index),
+        }
+        return jump_info
 
     def code_run(self):
         # TODO 移回IDE项目重新打通

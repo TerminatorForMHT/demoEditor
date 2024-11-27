@@ -4,7 +4,6 @@ from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QFileDialog
 
 from views.CodeWidget import CodeWidget
-from views.Editor import Editor
 
 
 class MainWindow(QMainWindow):
@@ -36,7 +35,7 @@ class MainWindow(QMainWindow):
             self.code_widget.load_file(file_path)
 
     def get_cursor_position(self):
-        cursor_position = self.monaco_widget.get_cursor_position()
+        cursor_position = self.code_widget.stacked_widget.currentWidget().get_cursor_position()
         if cursor_position:
             print(f"Cursor Position: Line {cursor_position['lineNumber']}, Column {cursor_position['column']}")
         else:

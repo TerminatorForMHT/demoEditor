@@ -39,7 +39,7 @@ class CodeWidget(QWidget):
     def close_tab(self, index):
         if self.stacked_widget.count() > 0:
             widget = self.stacked_widget.widget(index)
-            file_path = widget.current_file_path
+            file_path = widget.file_path
             self.tab_texts.remove(file_path.split(SEP)[-1])
             widget.save_file()
             del self.load_file_dict[file_path]
@@ -56,7 +56,6 @@ class CodeWidget(QWidget):
         if file_path not in self.load_file_dict.keys():
             editor = Editor(self)
             editor.load_file(file_path)
-            editor.ctrl_left_click_signal.connect(self.handle_ctrl_left_click)
             self.stacked_widget.addWidget(editor)
 
             index = self.stacked_widget.count() - 1
