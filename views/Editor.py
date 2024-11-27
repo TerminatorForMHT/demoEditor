@@ -2,8 +2,8 @@ import autopep8
 from PyQt6.QtCore import pyqtSignal, QEventLoop, Qt
 from monaco import MonacoWidget
 
-from conf.MAPS import MONACO_LANGUAGES
-from conf.config import ENCODE
+from config.MAPS import MONACO_LANGUAGES
+from config.config import ENCODE
 from util.jediLib import JdeiLib
 
 

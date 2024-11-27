@@ -4,8 +4,8 @@ from PyQt6.QtGui import QIcon, QCursor
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStackedWidget
 from qfluentwidgets import TabBar, RoundMenu, Action
 
-from conf.config import SEP, IMG_PATH
-from view.Editor import Editor
+from config.config import SEP, IMG_PATH
+from views.Editor import Editor
 
 
 class CodeWidget(QWidget):
