@@ -1,6 +1,7 @@
+import os
+
 import autopep8
-from PyQt6.QtCore import pyqtSignal, QEventLoop, Qt
-from PyQt6.QtWebChannel import QWebChannel
+from PyQt6.QtCore import pyqtSignal, QEventLoop, pyqtSlot
 from monaco import MonacoWidget
 
 from config.MAPS import MONACO_LANGUAGES
@@ -13,10 +14,58 @@ class Editor(MonacoWidget):
     自定义编辑器类，继承自 MonacoWidget
     """
     code_execut_signal = pyqtSignal(tuple)
+    ctrl_left_click_signal = pyqtSignal()  # 新增信号
 
-    def __init__(self, parent=None):
+    def __init__(self, parent, file_path):
         super().__init__(parent=parent)
         self.file_path = None
+
+        # 注册 JavaScript 事件监听器
+        self.page().runJavaScript("""
+            // 确保 editor 已经加载完成
+            window.onload = function() {
+                console.log("Window loaded");
+
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Control') {
+                        document.body.classList.add('ctrl-down');
+                        console.log("Ctrl key down");
+                    }
+                });
+
+                document.addEventListener('keyup', function(event) {
+                    if (event.key === 'Control') {
+                        document.body.classList.remove('ctrl-down');
+                        console.log("Ctrl key up");
+                    }
+                });
+
+                // 获取 Monaco Editor 的 DOM 节点
+                const editorContainer = document.getElementById('container');
+
+                if (!editorContainer) {
+                    console.error("Editor container not found");
+                    return;
+                }
+
+                editorContainer.addEventListener('mousedown', function(event) {
+                    if (event.button === 0 && document.body.classList.contains('ctrl-down')) {
+                        event.preventDefault(); // 阻止默认行为
+                        console.log("Ctrl+Left click detected in JS");
+                        window.bridge.emit_ctrl_left_click();
+                    }
+                });
+            };
+        """)
+
+        # 连接初始化信号到加载文件的方法
+        self.initialized.connect(lambda:self.load_file(file_path))
+
+
+    @pyqtSlot()
+    def on_ctrl_left_click(self):
+        print("Ctrl+Left Click detected in Python")
+        self.ctrl_left_click_signal.emit()
 
     def load_file(self, file_path: str) -> None:
         """
@@ -24,15 +73,37 @@ class Editor(MonacoWidget):
         :param file_path: 文件路径
         """
         self.file_path = file_path
-        file_suffix = file_path.rsplit('.', 1)[-1].lower()  # 防止后缀大小写差异
+
+        if not os.path.exists(file_path):
+            print(f"File does not exist: {file_path}")
+            return
+
+        file_suffix = file_path.rsplit('.', 1)[-1].lower()
         language = MONACO_LANGUAGES.get(file_suffix, 'plaintext')
         self.setLanguage(language)
 
         try:
             with open(file_path, 'r', encoding=ENCODE) as file:
-                self.setText(file.read())
+                content = file.read()
+                # 使用桥接对象传递内容到 JavaScript
+                self.set_editor_text(content)
         except Exception as error:
-            self.setText(f"无法加载文件: {error}")
+            print(f"Failed to load file: {error}")
+
+    def set_editor_text(self, content: str) -> None:
+        """
+        设置编辑器文本内容。
+        :param content: 要设置的内容
+        """
+        script = f"""
+        if (editor) {{
+            editor.setValue("{content.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')}");
+            console.log("Text set in editor.");
+        }} else {{
+            console.error("Editor not initialized");
+        }}
+        """
+        self._execute_script(script)
 
     def save_file(self) -> None:
         """
@@ -64,27 +135,17 @@ class Editor(MonacoWidget):
         })();
         """
 
-        # 创建事件循环等待 JavaScript 的异步返回值
         loop = QEventLoop()
-        result = {"position": None}  # 使用字典存储返回值
+        result = {"position": None}
 
         def handle_cursor_position(position):
-            result["position"] = position  # 存储光标位置
-            loop.quit()  # 结束事件循环
+            result["position"] = position
+            loop.quit()
 
-        # 运行 JavaScript 并设置回调
         self.page().runJavaScript(js_code, handle_cursor_position)
-        loop.exec()  # 阻塞直到 JavaScript 执行完毕
+        loop.exec()
 
-        # 返回结果或 None
         return result["position"]
-
-    def get_selected_text(self) -> str:
-        """
-        获取当前选中的文本。
-        :return: 选中的文本
-        """
-        script = ""
 
     def set_font_size(self, size: int) -> None:
         """
@@ -137,22 +198,6 @@ class Editor(MonacoWidget):
         """
         self._execute_script(script)
 
-    # def _enable_ctrl_click(self) -> None:
-    #     """
-    #     启用 Ctrl+单击以捕获光标位置。
-    #     """
-    #     script = """
-    #     (function() {
-    #         editor.onMouseDown(function(e) {
-    #             if (e.event.ctrlKey && e.target.position) {
-    #                 const position = e.target.position;
-    #                 window.pyqtSignalHandler.handleCtrlClick(position.lineNumber, position.column);
-    #             }
-    #         });
-    #     })();
-    #     """
-    #     self._execute_script(script)
-
     def _execute_script(self, script: str) -> None:
         """
         执行 JavaScript 脚本。
@@ -162,6 +207,10 @@ class Editor(MonacoWidget):
 
     def get_jump_info(self):
         position = self.get_cursor_position()
+        if position is None:
+            print("无法获取光标位置，跳过跳转信息获取")
+            return {}
+
         line = position["lineNumber"]
         index = position["column"]
         jedi_lib = JdeiLib(source=self.text(), filename=self.file_path)
@@ -173,50 +222,38 @@ class Editor(MonacoWidget):
 
     def code_run(self):
         # TODO 移回IDE项目重新打通
-        # runner = PythonExecutor()
-        # runner.execute_file(self.current_file_path)
-        # log = runner.stdout
-        # error = runner.stderr
-        # returncode = runner.returncode
-        # self.code_execut_signal.emit((log, error, returncode))
         pass
 
     def reformat(self):
         """
         使用 autopep8 格式化代码，并在格式化后保持光标位置。
         """
-        # 获取当前光标位置
         cursor_position = self.get_cursor_position()
         if cursor_position is None:
             print("无法获取光标位置，跳过格式化操作")
             return
 
-        # 格式化代码
         formatted_code = autopep8.fix_code(self.text())
-
-        # 更新编辑器内容
         self.setText(formatted_code)
 
-        # 获取旧光标行列
         old_line = cursor_position["lineNumber"]
         old_column = cursor_position["column"]
-
-        # 跳转回光标位置
         new_code_lines = formatted_code.splitlines()
         total_lines = len(new_code_lines)
 
-        # 确保行号有效
         line_to_jump = min(old_line, total_lines)
-        column_to_jump = min(old_column, len(new_code_lines[line_to_jump - 1]) + 1)  # 列号范围校验
+        column_to_jump = min(old_column, len(new_code_lines[line_to_jump - 1]) + 1)
 
-        # 设置光标位置
         self.jump_to_position(line_to_jump, column_to_jump)
 
     def get_completion_items(self):
         cursor_position = self.get_cursor_position()
+        if cursor_position is None:
+            print("无法获取光标位置，跳过补全项获取")
+            return
+
         line = cursor_position["lineNumber"]
         index = cursor_position["column"]
-
         jedi_lib = JdeiLib(source=self.text(), filename=self.file_path)
         completion_lists = jedi_lib.getCompletions(line, index)
         self.add_completion_items(completion_lists)

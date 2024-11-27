@@ -54,8 +54,8 @@ class CodeWidget(QWidget):
 
     def add_new_tab(self, file_path):
         if file_path not in self.load_file_dict.keys():
-            editor = Editor(self)
-            editor.load_file(file_path)
+            editor = Editor(self, file_path)
+            editor.ctrl_left_click_signal.connect(lambda: print("Ctrl+Left Click detected!"))
             self.stacked_widget.addWidget(editor)
 
             index = self.stacked_widget.count() - 1

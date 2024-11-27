@@ -1,10 +1,6 @@
 import sys
-
-from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QFileDialog
-
 from views.CodeWidget import CodeWidget
-from views.Editor import Editor
 
 
 class MainWindow(QMainWindow):
@@ -36,24 +32,11 @@ class MainWindow(QMainWindow):
             self.code_widget.load_file(file_path)
 
     def get_cursor_position(self):
-        cursor_position = self.monaco_widget.get_cursor_position()
+        cursor_position = self.code_widget.stacked_widget.currentWidget().get_cursor_position()
         if cursor_position:
             print(f"Cursor Position: Line {cursor_position['lineNumber']}, Column {cursor_position['column']}")
         else:
             print("Failed to get cursor position.")
-
-    def eventFilter(self, obj, event):
-        if event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Control:
-            self.ctrl_pressed = True
-            print('Ctrl is Pressed')
-        else:
-            self.ctrl_pressed = False
-        if self.ctrl_pressed and event.button() == Qt.MouseButton.LeftButton:
-            print('mouse left button is pressed')
-            editor = self.code_widget.stacked_widget.currentWidget()
-            if hasattr(editor, 'get_jump_info'):
-                self.code_widget.handle_ctrl_left_click(editor.get_jump_info())
-        super().eventFilter(obj, event)
 
 
 if __name__ == "__main__":
