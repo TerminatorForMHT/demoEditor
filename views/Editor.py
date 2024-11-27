@@ -59,8 +59,7 @@ class Editor(MonacoWidget):
         """)
 
         # 连接初始化信号到加载文件的方法
-        self.initialized.connect(lambda:self.load_file(file_path))
-
+        self.initialized.connect(lambda: self.load_file(file_path))
 
     @pyqtSlot()
     def on_ctrl_left_click(self):
