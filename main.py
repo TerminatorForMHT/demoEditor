@@ -1,42 +1,57 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QFileDialog
-from views.CodeWidget import CodeWidget
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QPushButton, QWidget, QVBoxLayout, QApplication, QSplitter, QHBoxLayout, QMainWindow
+from qfluentwidgets import FluentTitleBar
+from qfluentwidgets.common.animation import BackgroundAnimationWidget
+from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
+
+from views.UserInterface import UserInterface
 
 
-class MainWindow(QMainWindow):
+class MainWindow(BackgroundAnimationWidget, FramelessWindow):
     def __init__(self):
         super().__init__()
         self.ctrl_pressed = False
         self.setWindowTitle("Monaco Editor in Qt")
         self.resize(800, 600)
 
-        self.open_file_button = QPushButton("打开文件")
-        self.open_file_button.clicked.connect(self.open_file)
+        self.Main_widget = UserInterface(self)
 
-        self.get_position_button = QPushButton("获取坐标")
-        self.get_position_button.clicked.connect(self.get_cursor_position)
+        self.hBoxLayout = QHBoxLayout(self)
+        self.mainWidget = QWidget(self)
+        self.widgetLayout = QVBoxLayout(self.mainWidget)
+        self.hBoxLayout.setSpacing(0)
+        self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.hBoxLayout.addWidget(self.mainWidget)
+        self.widgetLayout.setContentsMargins(0, 30, 0, 0)
+        self.widgetLayout.addWidget(self.mainWidget)
+        self.setLayout(self.hBoxLayout)
 
-        self.code_widget = CodeWidget(self)
+        # 设置布局
+        self.splitter = QSplitter(Qt.Orientation.Vertical)
+        self.splitter.addWidget(self.Main_widget)
+        self.widgetLayout.addWidget(self.splitter)
+        self.setTitleBar(FluentTitleBar(self))
+        self.setWindowTitle('PythonPad++')
+
+
+class MainWindow1(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.ctrl_pressed = False
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.titleBar = FluentTitleBar(self)
+        self.titleBar.raise_()
+        self.setWindowTitle('PythonPad++')
+
+        self.code_widget = UserInterface(self)
 
         # 设置布局
         container = QWidget()
         layout = QVBoxLayout(container)
-        layout.addWidget(self.open_file_button)
-        layout.addWidget(self.get_position_button)
         layout.addWidget(self.code_widget)
         self.setCentralWidget(container)
-
-    def open_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Python Files (*.py)")
-        if file_path:
-            self.code_widget.load_file(file_path)
-
-    def get_cursor_position(self):
-        cursor_position = self.code_widget.stacked_widget.currentWidget().get_cursor_position()
-        if cursor_position:
-            print(f"Cursor Position: Line {cursor_position['lineNumber']}, Column {cursor_position['column']}")
-        else:
-            print("Failed to get cursor position.")
 
 
 if __name__ == "__main__":

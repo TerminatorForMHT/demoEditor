@@ -2,10 +2,10 @@ import os
 
 import autopep8
 from PyQt6.QtCore import pyqtSignal, QEventLoop, pyqtSlot
-from monaco import MonacoWidget
 
 from config.MAPS import MONACO_LANGUAGES
 from config.config import ENCODE
+from monaco.monaco_widget import MonacoWidget
 from util.jediLib import JdeiLib
 
 
@@ -20,51 +20,7 @@ class Editor(MonacoWidget):
         super().__init__(parent=parent)
         self.file_path = None
 
-        # 注册 JavaScript 事件监听器
-        self.page().runJavaScript("""
-            // 确保 editor 已经加载完成
-            window.onload = function() {
-                console.log("Window loaded");
-
-                document.addEventListener('keydown', function(event) {
-                    if (event.key === 'Control') {
-                        document.body.classList.add('ctrl-down');
-                        console.log("Ctrl key down");
-                    }
-                });
-
-                document.addEventListener('keyup', function(event) {
-                    if (event.key === 'Control') {
-                        document.body.classList.remove('ctrl-down');
-                        console.log("Ctrl key up");
-                    }
-                });
-
-                // 获取 Monaco Editor 的 DOM 节点
-                const editorContainer = document.getElementById('container');
-
-                if (!editorContainer) {
-                    console.error("Editor container not found");
-                    return;
-                }
-
-                editorContainer.addEventListener('mousedown', function(event) {
-                    if (event.button === 0 && document.body.classList.contains('ctrl-down')) {
-                        event.preventDefault(); // 阻止默认行为
-                        console.log("Ctrl+Left click detected in JS");
-                        window.bridge.emit_ctrl_left_click();
-                    }
-                });
-            };
-        """)
-
-        # 连接初始化信号到加载文件的方法
-        self.initialized.connect(lambda: self.load_file(file_path))
-
-    @pyqtSlot()
-    def on_ctrl_left_click(self):
-        print("Ctrl+Left Click detected in Python")
-        self.ctrl_left_click_signal.emit()
+        self.load_file(file_path)
 
     def load_file(self, file_path: str) -> None:
         """
@@ -85,24 +41,9 @@ class Editor(MonacoWidget):
             with open(file_path, 'r', encoding=ENCODE) as file:
                 content = file.read()
                 # 使用桥接对象传递内容到 JavaScript
-                self.set_editor_text(content)
+                self.setText(content)
         except Exception as error:
             print(f"Failed to load file: {error}")
-
-    def set_editor_text(self, content: str) -> None:
-        """
-        设置编辑器文本内容。
-        :param content: 要设置的内容
-        """
-        script = f"""
-        if (editor) {{
-            editor.setValue("{content.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')}");
-            console.log("Text set in editor.");
-        }} else {{
-            console.error("Editor not initialized");
-        }}
-        """
-        self._execute_script(script)
 
     def save_file(self) -> None:
         """

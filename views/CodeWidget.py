@@ -1,7 +1,7 @@
 from pathlib import PurePath
 
 from PyQt6.QtGui import QIcon, QCursor
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QStackedWidget
+from PyQt6.QtWidgets import QVBoxLayout, QStackedWidget, QWidget
 from qfluentwidgets import TabBar, RoundMenu, Action
 
 from config.config import SEP, IMG_PATH
@@ -13,8 +13,9 @@ class CodeWidget(QWidget):
     代码编辑器的容器，用于承载编辑器和其他相关的组件。
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, text: str, parent=None):
         super().__init__(parent)
+        self.setObjectName(text.replace(' ', '-'))
 
         self.parent = parent
         self.load_file_dict = dict()
